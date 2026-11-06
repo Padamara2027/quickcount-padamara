@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Count Pilkades Desa Padamara</title>
+<style>
+:root{
+  --bg:#edf0f3; --card:#ffffff; --ink:#10202e; --muted:#5a6b7a; --line:#d8dee4;
+  --a:#0b5fb3; --b:#c2410c; --live:#d62828; --gold:#e0a82e; --navy:#0f2a43;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0b1218; --card:#15202a; --ink:#eaf0f5; --muted:#93a3b1; --line:#2a3946; --a:#5aa5f2; --b:#f4955c;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+/* Kepala halaman */
+.top{background:linear-gradient(rgba(15,42,67,.9),rgba(15,42,67,.9)),url(foto-kantor.jpg) center/cover,var(--navy);color:#fff;border-bottom:4px solid var(--gold)}
+.bar{max-width:960px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{height:58px;width:auto;display:block}
+.ttl{flex:1;min-width:210px}
+.ttl b{display:block;font-size:1.2rem;line-height:1.2;font-weight:800}
+.ttl span{display:block;font-size:.82rem;color:#b9c8d6;margin-top:2px}
+.clock{text-align:right;font-variant-numeric:tabular-nums;margin-left:auto}
+#jam{font-size:1.7rem;font-weight:800;line-height:1.1}
+#tgl{font-size:.78rem;color:#b9c8d6}
+.live{display:inline-flex;align-items:center;gap:6px;background:var(--live);color:#fff;font-weight:700;font-size:.72rem;padding:2px 9px;border-radius:99px;margin-bottom:4px}
+.live i{width:7px;height:7px;border-radius:50%;background:#fff;animation:p 1.4s infinite}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
+
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+.video{aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;margin-bottom:16px}
+.video iframe{width:100%;height:100%;border:0}
+.video p{color:#9fb0bf;text-align:center;padding:12% 16px;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+
+/* Calon */
+.duel{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cand{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.ph{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--line)}
+.band{background:var(--cb);color:#fff;text-align:center;font-weight:800;padding:9px 6px;line-height:1.25;font-size:1.05rem}
+.band small{display:block;font-size:.75rem;font-weight:600;opacity:.9}
+.res{text-align:center;padding:10px 6px 14px}
+.votes{font-size:clamp(2.4rem,10vw,4.2rem);font-weight:800;line-height:1.05;color:var(--c);font-variant-numeric:tabular-nums}
+.pct{font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums}
+.split{display:flex;height:24px;border-radius:12px;overflow:hidden;margin:18px 0 0;background:var(--line)}
+.split div{transition:width .8s ease}
+
+/* Ringkasan */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:.82rem;color:var(--muted)}
+
+h3{font-size:1rem;margin:0 0 10px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:440px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.85rem;color:var(--muted);font-weight:600}
+tfoot td{font-weight:800;border-bottom:0}
+.tag{font-size:.78rem;padding:2px 9px;border-radius:99px;background:var(--line);color:var(--muted)}
+.tag.ok{background:#d5f0dd;color:#14532d}
+.tag.run{background:#fdebc8;color:#7a4b00}
+@media (prefers-color-scheme:dark){.tag.ok{background:#1b4a2c;color:#bdf0cd}.tag.run{background:#4a3710;color:#ffd98a}}
+#status{font-size:.85rem;color:var(--muted);margin:0 0 8px}
+.note{font-size:.85rem;color:var(--muted);border-left:3px solid var(--gold);padding-left:10px}
+
+@media (max-width:520px){
+  .logo{height:46px}
+  .clock{text-align:left;margin-left:0;width:100%}
+  .band{font-size:.95rem}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bar">
+    <img class="logo" id="logo" src="logo-desa.png" alt="Logo Pemerintah Desa Padamara" onerror="this.style.display='none'">
+    <div class="ttl">
+      <b>Quick Count Pilkades 2026</b>
+      <span>Desa Padamara · Kec. Padamara · Kab. Purbalingga · Jawa Tengah</span>
+    </div>
+    <div class="clock">
+      <div class="live"><i></i>LIVE</div>
+      <div id="jam">--:--:--</div>
+      <div id="tgl">&nbsp;</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="video" id="video"></div>
+
+  <section class="card">
+    <div class="duel" id="duel"></div>
+    <div class="split" id="split"></div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><b><span id="tpsIn" style="font-size:inherit;color:inherit">0</span>/<span id="tpsAll" style="font-size:inherit;color:inherit">0</span></b><span>TPS selesai</span></div>
+    <div class="stat"><b id="sah">0</b><span>Suara sah</span></div>
+    <div class="stat"><b id="tidak">0</b><span>Suara tidak sah</span></div>
+  </section>
+
+  <section class="card">
+    <h3>Rincian per TPS</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>TPS</th><th id="h0"></th><th id="h1"></th><th>Tidak sah</th><th>Status</th></tr></thead>
+      <tbody id="rows"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table></div>
+  </section>
+
+  <p id="status">Memuat data…</p>
+  <p class="note">Quick count ini bukan hasil resmi. Hasil resmi Pilkades ditetapkan oleh Panitia Pemilihan Kepala Desa Padamara.</p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ====== PENGATURAN (ubah di sini saja) ====== */
+const CONFIG = {
+  // Salin dari Firebase: Project settings > Your apps > Web app > firebaseConfig
+  firebase: { apiKey: "", authDomain: "", projectId: "", appId: "" },
+  // ID video YouTube Live, contoh: https://youtube.com/watch?v=ABCDEFGHIJK -> "ABCDEFGHIJK"
+  youtubeId: "",
+  calon: [
+    { no: 1, nama: "Bahtiar Isro’i", foto: "foto-bahtiar.jpg",  warna: "var(--a)", band: "#0b5fb3" },
+    { no: 2, nama: "Riswanto",       foto: "foto-riswanto.jpg", warna: "var(--b)", band: "#b6400c" }
+  ],
+  jumlahTps: 3
+};
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString("id-ID");
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Jam real time (WIB) */
+function tick() {
+  const now = new Date();
+  $("jam").textContent = now.toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour12: false }).replace(/\./g, ":") + " WIB";
+  $("tgl").textContent = now.toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+tick(); setInterval(tick, 1000);
+
+/* Video */
+$("video").innerHTML = CONFIG.youtubeId
+  ? '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(CONFIG.youtubeId) + '?autoplay=1&mute=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Siaran langsung"></iframe>'
+  : "<p>Siaran langsung akan tampil di sini.</p>";
+
+/* Kartu calon */
+const SILUET = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 50'><rect width='40' height='50' fill='%23c5ced6'/><circle cx='20' cy='19' r='8' fill='%23fff'/><path d='M5 50a15 15 0 0130 0z' fill='%23fff'/></svg>";
+$("duel").innerHTML = CONFIG.calon.map((c, i) =>
+  '<div class="cand" style="--c:' + c.warna + ';--cb:' + c.band + '">' +
+  '<img class="ph" src="' + c.foto + '" alt="Foto ' + esc(c.nama) + '" onerror="this.onerror=null;this.src=SILUET">' +
+  '<div class="band"><small>Nomor urut ' + c.no + '</small>' + esc(c.nama) + '</div>' +
+  '<div class="res"><div class="votes" id="v' + i + '">0</div><div class="pct" id="p' + i + '">0%</div></div></div>'
+).join("");
+window.SILUET = SILUET;
+$("h0").textContent = "No. 1 " + CONFIG.calon[0].nama;
+$("h1").textContent = "No. 2 " + CONFIG.calon[1].nama;
+$("split").innerHTML = CONFIG.calon.map((c, i) => '<div id="s' + i + '" style="width:50%;background:' + c.band + '"></div>').join("");
+$("tpsAll").textContent = CONFIG.jumlahTps;
+
+function render(m) {
+  const tot = [0, 0, 0];
+  let selesai = 0, html = "";
+  for (let n = 1; n <= CONFIG.jumlahTps; n++) {
+    const d = m["tps" + n] || {};
+    const ada = d.a != null || d.b != null || d.x != null;
+    const a = d.a || 0, b = d.b || 0, x = d.x || 0;
+    tot[0] += a; tot[1] += b; tot[2] += x;
+    if (d.selesai) selesai++;
+    const st = d.selesai ? ["Selesai", " ok"] : ada ? ["Menghitung", " run"] : ["Menunggu", ""];
+    html += "<tr><td>TPS " + n + "</td><td>" + (ada ? fmt(a) : "–") + "</td><td>" + (ada ? fmt(b) : "–") +
+            "</td><td>" + (ada ? fmt(x) : "–") + '</td><td><span class="tag' + st[1] + '">' + st[0] + "</span></td></tr>";
+  }
+  $("rows").innerHTML = html;
+  const sah = tot[0] + tot[1];
+  $("foot").innerHTML = "<tr><td>Total</td><td>" + fmt(tot[0]) + "</td><td>" + fmt(tot[1]) + "</td><td>" + fmt(tot[2]) + "</td><td></td></tr>";
+  [0, 1].forEach(i => {
+    const p = sah ? tot[i] / sah * 100 : 0;
+    $("v" + i).textContent = fmt(tot[i]);
+    $("p" + i).textContent = p.toFixed(1).replace(".", ",") + "%";
+    $("s" + i).style.width = (sah ? p : 50) + "%";
+    $("s" + i).style.opacity = sah ? 1 : .25;
+  });
+  $("tpsIn").textContent = selesai;
+  $("sah").textContent = fmt(sah);
+  $("tidak").textContent = fmt(tot[2]);
+}
+
+render({});
+if (!CONFIG.firebase.projectId) {
+  $("status").textContent = "Belum terhubung ke Firebase. Isi pengaturan di bagian CONFIG.";
+} else {
+  const db = getFirestore(initializeApp(CONFIG.firebase));
+  onSnapshot(collection(db, "tps"), snap => {
+    const m = {};
+    snap.forEach(d => m[d.id] = d.data());
+    render(m);
+    $("status").textContent = "Terhubung · angka berubah otomatis · pembaruan terakhir " + new Date().toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour12: false }).replace(/\./g, ":") + " WIB";
+  }, () => { $("status").textContent = "Data belum bisa dimuat. Periksa sinyal atau aturan Firestore."; });
+}
+</script>
+</body>
+</html>

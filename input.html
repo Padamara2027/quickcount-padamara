@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Input Suara – Quick Count Padamara</title>
+<style>
+:root{--bg:#eef1f4;--card:#fff;--ink:#10202e;--muted:#5a6b7a;--line:#d8dee4;--a:#0b5fb3;--b:#c2410c;--ok:#157347;--err:#c62828}
+@media (prefers-color-scheme:dark){:root{--bg:#0d151c;--card:#16212b;--ink:#eaf0f5;--muted:#93a3b1;--line:#2a3946;--a:#4c9bf0;--b:#f08a4b;--ok:#5fd18f;--err:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:480px;margin:0 auto;padding:16px}
+h1{font-size:1.2rem;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.top button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+label.l{display:block;font-size:.9rem;color:var(--muted);margin:10px 0 4px}
+input[type=email],input[type=password]{width:100%;padding:12px;font-size:1rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:1rem;font-weight:700;border:0;border-radius:8px;background:var(--a);color:#fff}
+#err{color:var(--err);font-size:.9rem;margin:8px 0 0;min-height:1.2em}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.tab{padding:12px 0;font-size:1rem;font-weight:700;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.tab.on{border-color:var(--a);background:var(--a);color:#fff}
+.f{margin-bottom:16px}
+.fn{font-weight:700;margin-bottom:6px;color:var(--c)}
+.ctl{display:grid;grid-template-columns:64px 1fr 64px;gap:8px}
+.ctl button{font-size:2rem;line-height:1;border:2px solid var(--c);background:var(--card);color:var(--c);border-radius:10px;height:64px}
+.ctl button:active{background:var(--c);color:#fff}
+.ctl input{width:100%;height:64px;text-align:center;font-size:2rem;font-weight:800;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
+.done{display:flex;align-items:center;gap:10px;padding-top:6px;font-weight:600}
+.done input{width:22px;height:22px}
+#stat{position:sticky;bottom:0;text-align:center;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-weight:700}
+#stat.ok{color:var(--ok)} #stat.err{color:var(--err)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="card hide">
+    <h1>Masuk petugas</h1>
+    <label class="l" for="em">Email</label>
+    <input id="em" type="email" autocomplete="username">
+    <label class="l" for="pw">Kata sandi</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button class="btn" id="go">Masuk</button>
+    <p id="err"></p>
+  </div>
+
+  <div id="app" class="hide">
+    <div class="top"><h1>Input suara</h1><button id="out">Keluar</button></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="card" id="fields"></div>
+    <div id="stat">Menyambungkan…</div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* Salin dari Firebase: Project settings > Your apps > Web app > firebaseConfig */
+const FIREBASE = { apiKey: "", authDomain: "", projectId: "", appId: "" };
+const JUMLAH_TPS = 3;
+const FIELD = [
+  { k: "a", n: "No. 1 Bahtiar Isro’i", c: "var(--a)" },
+  { k: "b", n: "No. 2 Riswanto",       c: "var(--b)" },
+  { k: "x", n: "Suara tidak sah", c: "var(--muted)" }
+];
+
+const $ = id => document.getElementById(id);
+const show = (id, on) => $(id).classList.toggle("hide", !on);
+let cur = 1, data = {}, db, unsub, timers = {};
+
+if (!FIREBASE.projectId) {
+  show("login", true);
+  $("err").textContent = "Isi FIREBASE di bagian atas file ini terlebih dahulu.";
+  $("go").disabled = true;
+} else {
+  const app = initializeApp(FIREBASE);
+  const auth = getAuth(app);
+  db = getFirestore(app);
+
+  $("go").onclick = async () => {
+    $("err").textContent = "";
+    try { await signInWithEmailAndPassword(auth, $("em").value.trim(), $("pw").value); }
+    catch (e) { $("err").textContent = "Email atau kata sandi salah."; }
+  };
+  $("out").onclick = () => signOut(auth);
+
+  onAuthStateChanged(auth, u => {
+    show("login", !u); show("app", !!u);
+    if (unsub) { unsub(); unsub = null; }
+    if (u) { build(); listen(); }
+  });
+}
+
+function setStat(t, cls) { $("stat").textContent = t; $("stat").className = cls || ""; }
+
+function listen() {
+  unsub = onSnapshot(collection(db, "tps"), { includeMetadataChanges: true }, snap => {
+    snap.forEach(d => data[d.id] = d.data());
+    sync();
+    if (snap.metadata.hasPendingWrites) setStat(navigator.onLine ? "Menyimpan…" : "Menunggu sinyal… data aman di HP");
+    else setStat("Tersimpan ✓", "ok");
+  }, () => setStat("Gagal terhubung. Periksa sinyal.", "err"));
+}
+
+function build() {
+  $("tabs").innerHTML = Array.from({ length: JUMLAH_TPS }, (_, i) =>
+    '<button class="tab' + (i + 1 === cur ? " on" : "") + '" data-n="' + (i + 1) + '">TPS ' + (i + 1) + "</button>").join("");
+  $("fields").innerHTML = FIELD.map(f =>
+    '<div class="f" style="--c:' + f.c + '"><div class="fn">' + f.n + '</div><div class="ctl">' +
+    '<button data-k="' + f.k + '" data-d="-1" aria-label="Kurangi">−</button>' +
+    '<input id="in_' + f.k + '" data-k="' + f.k + '" inputmode="numeric" pattern="[0-9]*" value="0">' +
+    '<button data-k="' + f.k + '" data-d="1" aria-label="Tambah">+</button></div></div>').join("") +
+    '<label class="done"><input type="checkbox" id="done"> Penghitungan TPS ' + cur + " selesai</label>";
+  sync();
+}
+
+function sync() {
+  const d = data["tps" + cur] || {};
+  FIELD.forEach(f => { const el = $("in_" + f.k); if (el && document.activeElement !== el) el.value = d[f.k] || 0; });
+  const c = $("done"); if (c) c.checked = !!d.selesai;
+}
+
+function save(n, patch) {
+  setDoc(doc(db, "tps", "tps" + n), { ...patch, diubah: serverTimestamp() }, { merge: true })
+    .catch(() => setStat("Gagal menyimpan. Periksa sinyal.", "err"));
+}
+
+$("tabs").onclick = e => {
+  const b = e.target.closest(".tab"); if (!b) return;
+  cur = +b.dataset.n; build();
+};
+
+$("fields").onclick = e => {
+  const b = e.target.closest("button[data-d]"); if (!b) return;
+  const k = b.dataset.k, d = +b.dataset.d;
+  const now = parseInt($("in_" + k).value, 10) || 0;
+  if (d < 0 && now <= 0) return;
+  $("in_" + k).value = now + d;
+  setStat("Menyimpan…");
+  save(cur, { [k]: increment(d) });
+};
+
+$("fields").oninput = e => {
+  const el = e.target;
+  if (el.id === "done") { save(cur, { selesai: el.checked }); return; }
+  if (!el.dataset.k) return;
+  const n = cur, k = el.dataset.k, key = n + k;
+  clearTimeout(timers[key]);
+  setStat("Mengetik…");
+  timers[key] = setTimeout(() => {
+    const v = Math.max(0, parseInt(el.value, 10) || 0);
+    save(n, { [k]: v });
+  }, 500);
+};
+</script>
+</body>
+</html>
